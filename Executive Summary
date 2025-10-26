@@ -1,5 +1,25 @@
-The executive summary should include:  
-•	overall question of interest and setting
-•	the factors you identified that were significantly related to attrition
-•	the performance of your model(s)
-•	any additional inference or finding that you came across in your study
+The executive summary:  
+•	Overall question of interest and setting  
+    Frito Lay partnered with Data Analytic Solutions to figure out what is driving employee turn over at the company. The company has collected information for the last year and provided it to Data Analytic Solutions to analyze. Our objective is to provide the key indicators of attrition, a way to predict at risk employees, and a financial analysis.   
+
+• The factors that were identified as significantly related to attrition  
+
+    We were able to determine that the most impactful drivers to turn over were Job Involvement, Marital Status, and Monthly Income.
+
+•	the performance of your model(s)  
+
+   KNN Model Performance after SMOTE:
+
+         Accuracy:  59.32%  
+         Sensitivity: 60.41%  
+         Specificity: 59.17%  
+
+   Naive Bayes Model Performance after SMOTE:
+
+         Accuracy: 63.51%  
+         Sensitivity:  69.75%  
+         Specificity: 62.36%  
+
+•	any additional inference or finding that you came across in your study  
+
+    Focus retention strategies on engagement, career development, and compensation equity for early-career employees.
