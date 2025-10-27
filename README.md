@@ -21,3 +21,6 @@ RMarkdown file that includes all of the code utilized to:
    Code to predict cost and savings based on attrition  
    Predictions for the competition data set  
 
+Video:
+
+https://smu-2u-com.zoom.us/rec/play/C8WBUAhNj2zwXdpl7woi0IkpAAkmKAGuLg-r5GzFMA8buHgtrv8CNSGU4rr9BveUbK8tOZFZ6kQi2xDg.DOUA7LE93XN3tTCe
