@@ -23,4 +23,4 @@ RMarkdown file that includes all of the code utilized to:
 
 Video:
 
-https://smu-2u-com.zoom.us/rec/play/C8WBUAhNj2zwXdpl7woi0IkpAAkmKAGuLg-r5GzFMA8buHgtrv8CNSGU4rr9BveUbK8tOZFZ6kQi2xDg.DOUA7LE93XN3tTCe
+https://smu-2u-com.zoom.us/rec/play/VMepg0CzOW8L3u4Z7XOs-Iksv8xkvQJX-zuCGYFlrvXq_c2VVpO1vTkuDm5EcuXHpYxMURyJbAqrzG17.oga44NY0KMcByPaC
