@@ -1,0 +1,766 @@
+---
+title: "Project 1"
+output: html_document
+Creator: "Sydney Bailey"
+date: "2025-10-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+
+#load the Frito Lay data into R
+ProjData = read.csv(file.choose(),header = TRUE)
+
+#review the head data to ensure it read in correctly
+head(ProjData)
+
+#load packages
+library(GGally)
+library(ggplot2)
+library(plotly)
+library(tidyverse)
+library(e1071)
+library(class)
+library(caret)
+library(smotefamily)
+library(dplyr)
+
+#update information in columns to add clarity around what the numerical values mean
+ProjData$Education = factor(ProjData$Education,labels = c("Below College", "College", "Bachelor","Master","Doctor"))
+
+ProjData$EnvironmentSatisfaction = factor(ProjData$EnvironmentSatisfaction,labels = c("Low","Medium","High","Very High"))
+
+ProjData$JobInvolvement = factor(ProjData$JobInvolvement,labels = c("Low","Medium","High","Very High"))
+
+ProjData$JobSatisfaction = factor(ProjData$JobSatisfaction,labels = c("Low","Medium","High","Very High"))
+
+ProjData$PerformanceRating = factor(ProjData$PerformanceRating,labels = c("Excellent","Outstanding"))
+
+ProjData$RelationshipSatisfaction = factor(ProjData$RelationshipSatisfaction,labels = c("Low","Medium","High","Very High"))
+
+ProjData$WorkLifeBalance = factor(ProjData$WorkLifeBalance,labels = c("Bad","Good","Better","Best"))
+
+
+displ_Factor = cut(ProjData$DistanceFromHome, breaks = c(1,10,20,30), labels = c("Low","Medium","High"))
+
+#In my company, the feedback from exit interviews shows that most are dissatisfied with their manager. I would like to plot the data from the Attrition of yes and how happy the people were with their manager.
+# It appears as though there is no alignment on low satisfaction and attrition. More very high than Low.
+data <- ProjData %>% filter(Attrition == "Yes")%>%
+  count(RelationshipSatisfaction) %>%
+  mutate(perc = n / sum(n),
+         label = paste0(RelationshipSatisfaction, ": ", round(perc * 100), "%"))
+
+ggplot(data, aes(x = RelationshipSatisfaction, y = perc, fill = RelationshipSatisfaction)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5) +
+  labs(y = "Percentage", title = "RelationshipSatisfaction Distribution (%)") +
+  theme_minimal()
+
+
+#lets look at the percentage of attrition for relationship satisfaction
+attrition_summary <- ProjData %>%
+  group_by(RelationshipSatisfaction) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+
+ggplot(attrition_summary, aes(x = RelationshipSatisfaction, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Relationship Satisfaction", x = "Relationship Satisfaction", y = "Attrition (%)") +  theme_minimal()
+
+#Lets run a test with rating for RelationshipSatisfaction
+table(ProjData$Attrition, ProjData$RelationshipSatisfaction)
+chisq.test(table(ProjData$Attrition, ProjData$RelationshipSatisfaction))
+
+
+# Environment Satisfaction - Appears to be more people with attrition in the low end but also very high
+data <- ProjData %>% filter(Attrition == "Yes")%>%
+  count(EnvironmentSatisfaction) %>%
+  mutate(perc = n / sum(n),
+         label = paste0(EnvironmentSatisfaction, ": ", round(perc * 100), "%"))
+
+ggplot(data, aes(x = EnvironmentSatisfaction, y = perc, fill = EnvironmentSatisfaction)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5) +
+  labs(y = "Percentage", title = "EnvironmentSatisfaction Distribution (%)") +
+  theme_minimal()
+
+#lets look at the percentage of attrition for Environment satisfaction
+attrition_summary <- ProjData %>%
+  group_by(EnvironmentSatisfaction) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+
+ggplot(attrition_summary, aes(x = EnvironmentSatisfaction, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Environment Satisfaction", x = "Environment Satisfaction", y = "Attrition (%)") +  theme_minimal()
+
+#Lets run a test with rating for EnvironmentSatisfaction
+table(ProjData$Attrition, ProjData$EnvironmentSatisfaction)
+chisq.test(table(ProjData$Attrition, ProjData$EnvironmentSatisfaction))
+
+
+# Job Involvement - Job involvement of high was more tied to attrition than low, medium, or very high
+data <- ProjData %>% filter(Attrition == "Yes")%>%
+  count(JobInvolvement) %>%
+  mutate(perc = n / sum(n),
+         label = paste0(JobInvolvement, ": ", round(perc * 100), "%"))
+
+ggplot(data, aes(x = JobInvolvement, y = perc, fill = JobInvolvement)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5) +
+  labs(y = "Percentage", title = "JobInvolvement Distribution (%)") +
+  theme_minimal()
+
+#lets look at the percentage of attrition for Job Involvement
+attrition_summary <- ProjData %>%
+  group_by(JobInvolvement) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+ggplot(attrition_summary, aes(x = JobInvolvement, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Job Involvement", x = "Job Involvement", y = "Attrition (%)") +  theme_minimal()
+
+#Lets run a test with rating for JobInvolvement
+table(ProjData$Attrition, ProjData$JobInvolvement)
+chisq.test(table(ProjData$Attrition, ProjData$JobInvolvement))
+
+#what about for the different college levels
+data <- ProjData %>%
+  count(Education) %>%
+  mutate(perc = n / sum(n),
+         label = paste0(Education, ": ", round(perc * 100), "%"))
+
+ggplot(data, aes(x = Education, y = perc, fill = Education)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5) +
+  labs(y = "Percentage", title = "Education Distribution (%)") +
+  theme_minimal()
+
+#lets look at the percentage of attrition for Education (not significantly different)
+attrition_summary <- ProjData %>%
+  group_by(Education) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+
+ggplot(attrition_summary, aes(x = Education, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Education", x = "Education", y = "Attrition (%)") +  theme_minimal()
+
+
+#What about different departments 
+#R&D has the highest percentage at 54% and then Sales at 42%, very interesting
+data <- ProjData %>% filter(Attrition == "Yes") %>%
+  count(Department) %>%
+  mutate(perc = n / sum(n),
+         label = paste0(Department, ": ", round(perc * 100), "%"))
+
+ggplot(data, aes(x = Department, y = perc, fill = Department)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5) +
+  labs(y = "Percentage", title = "Department Distribution for Attrition (%)") +
+  theme_minimal()
+
+#lets look at the percentage of attrition for Department 
+attrition_summary <- ProjData %>%
+  group_by(Department) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+
+ggplot(attrition_summary, aes(x = Department, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Department", x = "Department", y = "Attrition (%)") +  theme_minimal()
+
+#Lets run a test with rating for Department
+table(ProjData$Attrition, ProjData$Department)
+chisq.test(table(ProjData$Attrition, ProjData$Department))
+
+
+#Look at how many people left the company across the years
+ProjData %>%
+     ggplot(aes(x = YearsAtCompany, y = JobLevel, color = Attrition)) +
+     geom_point() +
+     geom_jitter(width = 0.2, height = 0, alpha = 0.6)
+
+#Monthly income vs years at the company, see if there is a positive trend with years at company and money
+ProjData %>%
+     ggplot(aes(x = YearsAtCompany, y = MonthlyIncome, color = Attrition)) +
+     geom_point() + geom_smooth(method = "lm", se = TRUE, color = "blue")
+
+ProjData %>% filter(YearsAtCompany < 10) %>%
+     ggplot(aes(x = YearsAtCompany, y = MonthlyIncome, color = Attrition)) +
+     geom_point() + geom_smooth(method = "lm", se = TRUE, color = "blue")
+
+
+#Monthly income vs total working years, see if there is a positive trend with years at company and money
+ProjData %>%
+     ggplot(aes(x = TotalWorkingYears, y = MonthlyIncome, color = Attrition)) +
+     geom_point() + geom_smooth
+
+ProjData %>% filter(TotalWorkingYears < 15) %>%
+     ggplot(aes(x = TotalWorkingYears, y = MonthlyIncome, color = Attrition)) +
+     geom_point() + geom_smooth(method = "lm", se = TRUE, color = "blue")
+
+#Is it more likely for someone to leave the company if they have left a lot of companies in the past
+ProjData %>%
+     ggplot(aes(x = NumCompaniesWorked, y = TotalWorkingYears, color = Attrition)) +
+     geom_point()
+#Percentage for number of companies worked where people feel most comfortable leaving
+data <- ProjData %>% filter(Attrition == "Yes") %>%
+  count(NumCompaniesWorked) %>%
+  mutate(perc = n / sum(n),
+         label = paste0(NumCompaniesWorked, ": ", round(perc * 100), "%"))
+
+ggplot(data, aes(x = NumCompaniesWorked, y = perc)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5) +
+  labs(y = "Percentage", title = "NumCompaniesWorked Distribution (%)") +
+  theme_minimal()
+
+#Percentage for work life balance who left
+data <- ProjData %>% filter(Attrition == "Yes") %>%
+  count(WorkLifeBalance) %>%
+  mutate(perc = n / sum(n),
+         label = paste0(WorkLifeBalance, ": ", round(perc * 100), "%"))
+
+ggplot(data, aes(x = WorkLifeBalance, y = perc)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5) +
+  labs(y = "Percentage", title = "WorkLifeBalance Distribution (%)") +
+  theme_minimal()
+
+attrition_summary <- ProjData %>%
+  group_by(WorkLifeBalance) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+
+ggplot(attrition_summary, aes(x = WorkLifeBalance, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Work Life Balance", x = "Work Life Balance", y = "Attrition (%)") +  theme_minimal()
+
+#Lets run a test with rating for WorkLifeBalance
+table(ProjData$Attrition, ProjData$WorkLifeBalance)
+chisq.test(table(ProjData$Attrition, ProjData$WorkLifeBalance))
+
+#Percentage for Job Involvement who left
+data <- ProjData %>% filter(Attrition == "Yes") %>%
+  count(JobInvolvement) %>%
+  mutate(perc = n / sum(n),
+         label = paste0(JobInvolvement, ": ", round(perc * 100), "%"))
+
+ggplot(data, aes(x = JobInvolvement, y = perc)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5) +
+  labs(y = "Percentage", title = "JobInvolvement Distribution (%)") +
+  theme_minimal()
+
+# Look at environment satisfaction vs Job involvement
+ggplot(ProjData %>% filter(Attrition == "Yes"), aes(x = factor(EnvironmentSatisfaction), fill = factor(JobInvolvement))) +
++     geom_bar(position = "dodge")
+
+
+# Look at Job satisfaction vs Job involvement
+ggplot(ProjData %>% filter(Attrition == "Yes"), aes(x = factor(JobSatisfaction), fill = factor(JobInvolvement))) +
+  geom_bar(position = "dodge")
+
+
+# Look at Attrition vs Monthly Income
+ggplot(ProjData, aes(x = Attrition, y = MonthlyIncome, fill = Attrition)) +
+  geom_boxplot() +
+  labs(title = "Monthly Income by Attrition",
+       x = "Attrition",
+       y = "Monthly Income")  +
+  theme(legend.position = "none")
+
+#Lets test it:
+t.test(MonthlyIncome ~ Attrition, data = ProjData)
+
+# Look at Attrition vs Monthly Rate
+ggplot(ProjData, aes(x = Attrition, y = MonthlyRate, fill = Attrition)) +
+  geom_boxplot() +
+  labs(title = "Monthly Rate by Attrition",
+       x = "Attrition",
+       y = "Monthly Rate")  +
+  theme(legend.position = "none")
+
+#Lets test it:
+t.test(MonthlyRate ~ Attrition, data = ProjData)
+
+
+# Look at Attrition vs Distance From Home
+ggplot(ProjData, aes(x = Attrition, y = DistanceFromHome)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Distance From Home Distribution by Attrition Status", x = "Attrition", y ="Distance From Home")
+
+ggplot(ProjData, aes(x = Attrition, y = DistanceFromHome, fill = Attrition)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width = 0.1, fill = "white") +
+  labs(title = "Violin Plot of DistanceFromHome by Attrition")
+
+#Lets test it:
+t.test(DistanceFromHome ~ Attrition, data = ProjData)
+
+# There is a statistically significant difference in DistanceFromHome between employees who left and those who stayed. On average, those who left lived farther away from the workplace. This could suggest that commute distance might be related to attrition in your dataset.
+
+#Percentage for job satisfation who left
+attrition_summary <- ProjData %>%
+  group_by(JobSatisfaction) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+
+ggplot(attrition_summary, aes(x = JobSatisfaction, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Job Satisfaction", x = "Job Satisfaction", y = "Attrition (%)") +  theme_minimal()
+
+#Lets run a test with rating for JobSatisfaction
+table(ProjData$Attrition, ProjData$JobSatisfaction)
+chisq.test(table(ProjData$Attrition, ProjData$JobSatisfaction))
+
+#Percentage for business travel who left
+attrition_summary <- ProjData %>%
+  group_by(BusinessTravel) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+
+ggplot(attrition_summary, aes(x = BusinessTravel, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Business Travel", x = "Business Travel", y = "Attrition (%)") +  theme_minimal()
+
+#Lets run a test with rating for BusinessTravel
+table(ProjData$Attrition, ProjData$BusinessTravel)
+chisq.test(table(ProjData$Attrition, ProjData$BusinessTravel))
+
+
+
+
+#Does marital status matter...?
+attrition_summary <- ProjData %>%
+  group_by(MaritalStatus) %>%
+  summarise(
+    Count = n(),
+    Attrition_Yes = sum(Attrition == "Yes"),
+    Percent_Attrition = 100 * Attrition_Yes / Count)
+
+ggplot(attrition_summary, aes(x = MaritalStatus, y = Percent_Attrition)) +
+  geom_col(fill = "tomato") +
+  geom_text(aes(label = paste0(round(Percent_Attrition, 1), "%")), vjust = -0.5) +
+  labs(title = "Attrition Rate by Marital Status", x = "Marital Status", y = "Attrition (%)") +  theme_minimal()
+
+#Lets run a test with rating for MaritalStatus
+table(ProjData$Attrition, ProjData$MaritalStatus)
+chisq.test(table(ProjData$Attrition, ProjData$MaritalStatus))
+
+
+# Look at Attrition vs Number of Companies worked
+ggplot(ProjData, aes(x = Attrition, y = NumCompaniesWorked)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Number of Companies Worked Distribution by Attrition Status", x = "Attrition", y ="Number of Companies Worked")
+
+ggplot(ProjData, aes(x = Attrition, y = NumCompaniesWorked, fill = Attrition)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width = 0.1, fill = "white") +
+  labs(title = "Violin Plot of Number of Companies Worked by Attrition")
+
+#Lets test it:
+t.test(NumCompaniesWorked ~ Attrition, data = ProjData)
+
+# Look at Attrition vs Number of years in current role
+ggplot(ProjData, aes(x = Attrition, y = YearsInCurrentRole)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Years In Current Role Distribution by Attrition Status", x = "Attrition", y ="Years In Current Role")
+
+ggplot(ProjData, aes(x = Attrition, y = YearsInCurrentRole, fill = Attrition)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width = 0.1, fill = "white") +
+  labs(title = "Violin Plot of Years In Current Role by Attrition", y = "Years In Current Role") +
+  theme(legend.position = "none")
+
+#Lets test it:
+t.test(YearsInCurrentRole ~ Attrition, data = ProjData)
+
+# Look at Attrition vs Number of years with current manager
+ggplot(ProjData, aes(x = Attrition, y = YearsWithCurrManager)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Years With Current Manager Distribution by Attrition Status", x = "Attrition", y ="Years With Current Manager")
+
+ggplot(ProjData, aes(x = Attrition, y = YearsWithCurrManager, fill = Attrition)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width = 0.1, fill = "white") +
+  labs(title = "Violin Plot of Years With Current Manager by Attrition",  y = "Years With Current Manager") +
+  theme(legend.position = "none")
+
+#Lets test it:
+t.test(YearsWithCurrManager ~ Attrition, data = ProjData)
+
+
+# Look at Attrition vs Job Level
+ggplot(ProjData, aes(x = Attrition, y = JobLevel, fill = Attrition)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width = 0.1, fill = "white") +
+  labs(title = "Violin Plot of Job Level by Attrition") +
+  theme(legend.position = "none")
+
+#Lets test it:
+t.test(JobLevel ~ Attrition, data = ProjData)
+
+
+# Look at Attrition vs Stock Option Level
+ggplot(ProjData, aes(x = Attrition, y = StockOptionLevel, fill = Attrition)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width = 0.1, fill = "white") +
+  labs(title = "Violin Plot of Stock Option Level by Attrition", y = "Stock Option Level") +
+  theme(legend.position = "none")
+
+#Lets test it:
+t.test(StockOptionLevel ~ Attrition, data = ProjData)
+
+#----------------------------------------------------------------------------------------------------
+#Now that we know our data, lets do our prediction model with the data set
+set.seed(123)
+
+#separate the data into training and test samples
+trainIndices = sample(seq(1:length(ProjData$Attrition)),round(.7*length(ProjData$Attrition)))
+trainData = ProjData[trainIndices,]
+testData = ProjData[-trainIndices,]
+
+# Run KNN model. Can only use the numeric values
+# k = 5
+classifications = knn(trainData[,c(20, 16, 34)],testData[,c(20, 16, 34)],trainData$Attrition, prob = TRUE, k = 5)
+table(classifications,testData$Attrition)
+confusionMatrix(table(classifications,testData$Attrition), , positive = "Yes")
+
+# Model for Naive Bayes
+# yay we can use non-numeric and numeric variables
+model = naiveBayes(ProjData[,c("JobInvolvement", "MaritalStatus", "MonthlyIncome", "JobLevel", "YearsInCurrentRole")],ProjData$Attrition)
+
+CM = confusionMatrix(table(predict(model,testData[,c("JobInvolvement", "MaritalStatus", "MonthlyIncome", "JobLevel", "YearsInCurrentRole")]),testData$Attrition), mode = "everything", positive = "Yes")
+CM
+
+#----------------------------------------------------------------------------------------------------
+# Lets try to see what our predictions look like if we filter on job type 
+set.seed(123)
+
+#separate the data into training and test samples
+SalesData = ProjData %>% filter(Department == "Sales" & JobLevel == 1)
+
+trainIndices = sample(seq(1:length(SalesData$Attrition)),round(.7*length(SalesData$Attrition)))
+trainData = SalesData[trainIndices,]
+testData = SalesData[-trainIndices,]
+
+# Run KNN model. Can only use the numeric values
+# k = 5
+classifications = knn(trainData[,c(20, 16, 34)],testData[,c(20, 16, 34)],trainData$Attrition, prob = TRUE, k = 5)
+table(classifications,testData$Attrition)
+confusionMatrix(table(classifications,testData$Attrition), , positive = "Yes")
+
+# Model for Naive Bayes
+# yay we can use non-numeric and numeric variables
+model = naiveBayes(SalesData[,c("JobInvolvement", "MaritalStatus", "MonthlyIncome", "JobLevel", "YearsInCurrentRole")],SalesData$Attrition)
+
+CM = confusionMatrix(table(predict(model,testData[,c("JobInvolvement", "MaritalStatus", "MonthlyIncome", "JobLevel", "YearsInCurrentRole")]),testData$Attrition), mode = "everything", positive = "Yes")
+CM
+
+
+#----------------------------------------------------------------------------------------------------
+#KNN runs :)
+
+# Since we did not get the best sensitivity values with using all the data as is, 
+# we need to re-sample the attrition data to add additional yes values for people who left.
+# Lets start with KNN and include only the numeric variables
+AccKNNHolder = numeric(100)
+SensKNNHolder = numeric(100)
+SpecKNNHolder = numeric(100)
+
+for (seed in 1:100)
+{
+set.seed(seed)
+
+#separate the data into training and test samples
+trainIndices = sample(seq(1:length(ProjData$Attrition)),round(.7*length(ProjData$Attrition)))
+trainData = ProjData[trainIndices,]
+testData = ProjData[-trainIndices,]
+
+#since the data is imbalanced, we will use SMOTE to re-sample the data to be more balanced
+trainData$Attrition <- as.factor(trainData$Attrition)  # SMOTE requires factors
+
+# Subset only relevant predictors and the target  "YearsAtCompany", 
+trainData_subset <- trainData[, c("MonthlyIncome", "MonthlyRate", "JobLevel", "DistanceFromHome", "YearsInCurrentRole", "YearsWithCurrManager", "TrainingTimesLastYear",  "NumCompaniesWorked", "StockOptionLevel", "Attrition")]
+
+
+
+# Separate predictors and target
+X <- trainData_subset[, setdiff(names(trainData_subset), "Attrition")]
+target <- trainData_subset$Attrition
+
+# Remove columns with only one unique value
+single_level_cols <- sapply(X, function(col) length(unique(col)) == 1)
+X_filtered <- X[, !single_level_cols]
+
+# Convert categorical predictors to numeric dummies
+dummies <- dummyVars(~ ., data = X_filtered)
+X_numeric <- predict(dummies, newdata = X_filtered)
+X_numeric <- as.data.frame(X_numeric)
+
+# Now apply same transformation to test data
+X_test <- testData[, setdiff(names(testData), "Attrition")]
+X_test_dummies <- predict(dummies, newdata = X_test)
+X_test_dummies <- as.data.frame(X_test_dummies)
+
+# Apply SMOTE
+smote_result <- SMOTE(X_numeric, target, K = 5, dup_size = 5)
+
+# Combine back into a balanced dataset
+trainData_bal <- smote_result$data
+names(trainData_bal)[ncol(trainData_bal)] <- "Attrition"
+
+
+# Now that we have more balanced data set
+# Start the KNN
+
+# Separate predictors and target
+X_train <- trainData_bal[, setdiff(names(trainData_bal), "Attrition")]
+y_train <- trainData_bal$Attrition
+
+# Preprocess: center and scale predictors
+preProcValues <- preProcess(X_train, method = c("center", "scale"))
+X_train_scaled <- predict(preProcValues, X_train)
+X_test_scaled <- predict(preProcValues, X_test_dummies)
+
+# Set up training control (with cross-validation)
+train_control <- trainControl(method = "cv", number = 5, classProbs = TRUE, summaryFunction = twoClassSummary)
+
+# Train KNN model, tuning k automatically
+knn_model <- train(x = X_train_scaled,
+                   y = y_train,
+                   method = "knn",
+                   trControl = train_control,
+                   metric = "ROC",   # Optimize for AUC
+                   tuneLength = 10)  # Try 10 different k values
+
+#print(knn_model)
+
+
+#KNN
+
+knn_preds <- predict(knn_model, newdata = X_test_scaled)
+
+knn_preds <- factor(knn_preds, levels = c("No", "Yes"))
+test_labels <- factor(testData$Attrition, levels = c("No", "Yes"))
+CMKNN = confusionMatrix(knn_preds, test_labels, positive = "Yes")
+AccKNNHolder[seed] = CMKNN$overall[1]
+SensKNNHolder[seed] = CMKNN$byClass[1]
+SpecKNNHolder[seed] = CMKNN$byClass[2]
+}
+
+mean(AccKNNHolder)
+#Standard Error of the Mean
+sd(AccKNNHolder)/sqrt(100) 
+mean(SensKNNHolder)
+#Standard Error of the Mean
+sd(SensKNNHolder)/sqrt(100) 
+mean(SpecKNNHolder)
+#Standard Error of the Mean
+sd(SpecKNNHolder)/sqrt(100)
+
+
+#----------------------------------------------------------------------------------------------------
+# Naive Bayes Runs :)
+
+# Since we did not get the best sensitivity values with using all the data as is, 
+# we need to re-sample the attrition data to add additional yes values for people who left.
+# Now lets do Naive Bayes and include the top variables identified in the eda
+
+AccNBHolder = numeric(100)
+SensNBHolder = numeric(100)
+SpecNBHolder = numeric(100)
+
+
+for (seed in 1:300)
+{
+set.seed(seed)
+
+#separate the data into training and test samples
+trainIndices = sample(seq(1:length(ProjData$Attrition)),round(.7*length(ProjData$Attrition)))
+trainData = ProjData[trainIndices,]
+testData = ProjData[-trainIndices,]
+
+#since the data is imbalanced, we will use SMOTE to re-sample the data to be more balanced
+trainData$Attrition <- as.factor(trainData$Attrition)  # SMOTE requires factors
+
+# Subset only relevant predictors and the target
+trainData_subset <- trainData[, c("JobInvolvement", "MaritalStatus", "MonthlyIncome", "JobLevel", "YearsInCurrentRole", "Attrition")]
+
+
+# Separate predictors and target
+X <- trainData_subset[, setdiff(names(trainData_subset), "Attrition")]
+target <- trainData_subset$Attrition
+
+# Remove columns with only one unique value
+single_level_cols <- sapply(X, function(col) length(unique(col)) == 1)
+X_filtered <- X[, !single_level_cols]
+
+# Convert categorical predictors to numeric dummies
+dummies <- dummyVars(~ ., data = X_filtered)
+X_numeric <- predict(dummies, newdata = X_filtered)
+X_numeric <- as.data.frame(X_numeric)
+
+# Now apply same transformation to test data
+X_test <- testData[, setdiff(names(testData), "Attrition")]
+X_test_dummies <- predict(dummies, newdata = X_test)
+X_test_dummies <- as.data.frame(X_test_dummies)
+
+# Apply SMOTE
+smote_result <- SMOTE(X_numeric, target, K = 5, dup_size = 3)
+
+# Combine back into a balanced dataset
+trainData_bal <- smote_result$data
+names(trainData_bal)[ncol(trainData_bal)] <- "Attrition"
+
+
+# Now that we have more balanced data set, lets run both KNN and Naive Bayes
+# Start the NB
+
+# Separate predictors and target
+X_train <- trainData_bal[, setdiff(names(trainData_bal), "Attrition")]
+y_train <- trainData_bal$Attrition
+
+# Preprocess: center and scale predictors
+preProcValues <- preProcess(X_train, method = c("center", "scale"))
+X_train_scaled <- predict(preProcValues, X_train)
+X_test_scaled <- predict(preProcValues, X_test_dummies)
+
+# Train Naive Bayes model
+nb_model <- naiveBayes(Attrition ~ ., data = trainData_bal)
+
+#print(nb_model)
+
+
+#Naive Bayes
+
+# Predict class labels
+nb_preds <- predict(nb_model, newdata = X_test_dummies)
+
+# Ensure factor levels match
+nb_preds <- factor(nb_preds, levels = c("No", "Yes"))
+test_labels <- factor(testData$Attrition, levels = c("No", "Yes"))
+
+# Evaluate with confusion matrix
+CMNB = confusionMatrix(nb_preds, test_labels, positive = "Yes")
+AccNBHolder[seed] = CMNB$overall[1]
+SensNBHolder[seed] = CMNB$byClass[1]
+SpecNBHolder[seed] = CMNB$byClass[2]
+}
+
+mean(AccNBHolder)
+#Standard Error of the Mean
+sd(AccNBHolder)/sqrt(100) 
+mean(SensNBHolder)
+#Standard Error of the Mean
+sd(SensNBHolder)/sqrt(100) 
+mean(SpecNBHolder)
+#Standard Error of the Mean
+sd(SpecNBHolder)/sqrt(100)
+
+
+#------------------------------------------------------------------------------------------
+
+# Look at what data we need to calcaulate the costs of the model
+# Calculate the average salary for each of the job levels to estimate the total cost
+mean(ProjData$MonthlyRate[ProjData$JobLevel == 1]) + mean(ProjData$MonthlyIncome[ProjData$JobLevel == 1])
+
+mean(ProjData$MonthlyRate[ProjData$JobLevel == 2]) + mean(ProjData$MonthlyIncome[ProjData$JobLevel == 2])
+
+mean(ProjData$MonthlyRate[ProjData$JobLevel == 3]) + mean(ProjData$MonthlyIncome[ProjData$JobLevel == 3])
+
+mean(ProjData$MonthlyRate[ProjData$JobLevel == 4]) + mean(ProjData$MonthlyIncome[ProjData$JobLevel == 4])
+
+mean(ProjData$MonthlyRate[ProjData$JobLevel == 5]) + mean(ProjData$MonthlyIncome[ProjData$JobLevel == 5])
+
+
+#KNN costs
+Cost_KNN = (CMKNN$table[2] + CMKNN$table[4])*10 + CMKNN$table[3]*225
+Cost_KNN
+
+
+#Naive Bayes costs
+Cost_NB = (CMNB$table[2] + CMNB$table[4])*10 + CMNB$table[3]*225
+Cost_NB
+
+#---------------------------------------------------------------------------------------------------------------
+
+#We need to run the Naive Bayes on the test data where we get judged on how accurately we predict
+
+# Load in the data set we will use to predict attrition for the competition
+CompData = read.csv(file.choose(),header = TRUE)
+
+# We will use Naive Bayes due to the higher sensitivity of the model
+
+# Predict class labels
+CompData$Predicted_Attrition <- predict(nb_model, CompData)
+
+# Add Predicted probabilities
+probabilities <- predict(nb_model, CompData, type = "raw")
+CompData$Attrition_Probability <- probabilities[, "Yes"]
+
+# Write to CSV to submit in project
+write.csv(CompData, "Case1PredictionsBailey_Attrition.csv", row.names = FALSE)
+
+
+
+
+
